@@ -146,7 +146,7 @@ def get_main_menu():
     )
 
 
-async def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Привет! Я бот для трекинга привычек и дедлайнов.\n"
         "Выберите действие:",
@@ -154,7 +154,7 @@ async def start(update, context):
     )
 
 
-async def add_habit(update, context):
+async def add_habit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Введите название привычки:",
         reply_markup=ReplyKeyboardRemove(),
@@ -162,9 +162,10 @@ async def add_habit(update, context):
     return ADDING_HABIT
 
 
-async def habit_input(update, context):
+async def habit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     habit_text = update.message.text
     user_id = update.message.from_user.id
+
     habit_id = add_habit_to_db(user_id, habit_text)
     context.job_queue.run_repeating(
         send_reminder,
@@ -183,7 +184,7 @@ async def habit_input(update, context):
     return ConversationHandler.END
 
 
-async def add_deadline(update, context):
+async def add_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Введите название дедлайна:",
         reply_markup=ReplyKeyboardRemove(),
@@ -191,7 +192,7 @@ async def add_deadline(update, context):
     return ADDING_DEADLINE
 
 
-async def deadline_input(update, context):
+async def deadline_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["deadline_name"] = update.message.text
     await update.message.reply_text(
         "Введите дату дедлайна в формате ДД.ММ.ГГГГ (например, 31.12.2023):",
@@ -199,34 +200,34 @@ async def deadline_input(update, context):
     return SETTING_DEADLINE_DATE
 
 
-async def deadline_date_input(update, context):
+async def deadline_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         deadline_date = datetime.strptime(update.message.text, "%d.%m.%Y").date()
         today = datetime.now().date()
 
         if deadline_date < today:
             await update.message.reply_text(
-                "Дата дедлайна не может быть раньше сегодняшнего дня! Введите корректную дату:",
+                "❌ Дата дедлайна не может быть раньше сегодняшнего дня! Введите корректную дату:",
                 reply_markup=get_main_menu(),
             )
             return SETTING_DEADLINE_DATE
 
         context.user_data["deadline_date"] = deadline_date
         await update.message.reply_text(
-            "Введите время напоминания в формате ЧЧ:ММ (например, 09:30):",
+            "⏰ Введите время напоминания в формате ЧЧ:ММ (например, 09:30):",
             reply_markup=ReplyKeyboardRemove(),
         )
         return SETTING_DEADLINE_TIME
 
     except ValueError:
         await update.message.reply_text(
-            "Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГГГ:",
+            "❌ Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГГГ:",
             reply_markup=get_main_menu(),
         )
         return SETTING_DEADLINE_DATE
 
 
-async def deadline_time_input(update, context):
+async def deadline_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         reminder_time = datetime.strptime(update.message.text, "%H:%M").time()
         deadline_date = context.user_data["deadline_date"]
@@ -234,7 +235,7 @@ async def deadline_time_input(update, context):
         deadline_datetime = pytz.utc.localize(deadline_datetime)
         if deadline_datetime < datetime.now(pytz.utc):
             await update.message.reply_text(
-                "Выбранное время уже прошло! Введите новое время:",
+                "❌ Выбранное время уже прошло! Введите новое время:",
                 reply_markup=get_main_menu(),
             )
             return SETTING_DEADLINE_TIME
@@ -245,6 +246,7 @@ async def deadline_time_input(update, context):
             is_deadline=True,
             deadline_date=deadline_datetime,
         )
+
         context.job_queue.run_daily(
             send_deadline_reminder,
             time=reminder_time,
@@ -259,22 +261,22 @@ async def deadline_time_input(update, context):
         )
 
         await update.message.reply_text(
-            f"Дедлайн '{context.user_data['deadline_name']}' успешно добавлен!\n"
-            f"Дата: {deadline_date.strftime('%d.%m.%Y')}\n"
-            f"Напоминание: ежедневно в {reminder_time.strftime('%H:%M')}",
+            f"✅ Дедлайн '{context.user_data['deadline_name']}' успешно добавлен!\n"
+            f"📅 Дата: {deadline_date.strftime('%d.%m.%Y')}\n"
+            f"⏰ Напоминание: ежедневно в {reminder_time.strftime('%H:%M')}",
             reply_markup=get_main_menu(),
         )
         return ConversationHandler.END
 
     except ValueError:
         await update.message.reply_text(
-            "Неверный формат времени. Пожалуйста, введите время в формате ЧЧ:ММ:",
+            "❌ Неверный формат времени. Пожалуйста, введите время в формате ЧЧ:ММ:",
             reply_markup=get_main_menu(),
         )
         return SETTING_DEADLINE_TIME
 
 
-async def send_deadline_reminder(update, context):
+async def send_deadline_reminder(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     deadline_name = job.data["deadline_name"]
     deadline_date = job.data["deadline_date"]
@@ -291,19 +293,19 @@ async def send_deadline_reminder(update, context):
 
         if days_left > 0:
             message = (
-                f"Дедлайн: {deadline_name}\n"
-                f"Дата: {deadline_date.strftime('%d.%m.%Y')}\n"
-                f"Осталось дней: {days_left}"
+                f"⏳ Дедлайн: {deadline_name}\n"
+                f"📅 Дата: {deadline_date.strftime('%d.%m.%Y')}\n"
+                f"⏱ Осталось дней: {days_left}"
             )
         elif days_left == 0:
             message = (
-                f"Сегодня последний день!\n"
+                f"⚠️ Сегодня последний день!\n"
                 f"Дедлайн: {deadline_name}\n"
                 f"Не забудьте выполнить!"
             )
         else:
             message = (
-                f"Дедлайн просрочен!\n"
+                f"🚨 Дедлайн просрочен!\n"
                 f"{deadline_name} должен был быть выполнен {deadline_date.strftime('%d.%m.%Y')}\n"
                 f"Просрочено на {-days_left} дней"
             )
@@ -320,7 +322,7 @@ async def send_deadline_reminder(update, context):
             logger.error(f"Ошибка при отправке напоминания: {e}")
 
 
-async def my_habits(update, context):
+async def my_habits(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     habits = get_user_habits(user_id)
 
@@ -331,17 +333,17 @@ async def my_habits(update, context):
         )
         return
 
-    message = "Ваши привычки и дедлайны:\n\n"
+    message = "📋 Ваши привычки и дедлайны:\n\n"
     for habit_id, habit_text, is_done, interval, is_deadline, deadline_date in habits:
         if is_deadline:
             deadline_str = deadline_date.strftime("%d.%m.%Y") if deadline_date else "???"
-            status = f"Дедлайн: {deadline_str}"
+            status = f"📅 Дедлайн: {deadline_str}"
         else:
             interval_hours = interval // 3600
             interval_min = (interval % 3600) // 60
-            status = f"Напоминание: каждые {interval_hours}ч {interval_min}м"
+            status = f"⏰ Напоминание: каждые {interval_hours}ч {interval_min}м"
 
-        done_status = "Выполнен" if is_done else "Не выполнен"
+        done_status = "✅ Выполнен" if is_done else "❌ Не выполнен"
         message += f"{habit_id}. {habit_text}\n{status} - {done_status}\n\n"
 
     await update.message.reply_text(
@@ -350,10 +352,10 @@ async def my_habits(update, context):
     )
 
 
-async def mark_done(update, context):
+async def mark_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     habits = get_user_habits(user_id)
-    deadlines = [h for h in habits if h[4]]
+    deadlines = [h for h in habits if h[4]]  # is_deadline=True
 
     if not deadlines:
         await update.message.reply_text(
@@ -373,7 +375,7 @@ async def mark_done(update, context):
     return MARKING_DONE
 
 
-async def deadline_done_input(update, context):
+async def deadline_done_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "Отмена":
         await update.message.reply_text(
             "Действие отменено",
@@ -410,7 +412,7 @@ async def deadline_done_input(update, context):
     return ConversationHandler.END
 
 
-async def delete_item(update, context):
+async def delete_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     habits = get_user_habits(user_id)
 
@@ -432,7 +434,7 @@ async def delete_item(update, context):
     return DELETING_ITEM
 
 
-async def delete_item_input(update, context):
+async def delete_item_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "Отмена":
         await update.message.reply_text(
             "Действие отменено",
@@ -470,7 +472,7 @@ async def delete_item_input(update, context):
     return ConversationHandler.END
 
 
-async def set_reminder(update, context):
+async def set_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     habits = get_user_habits(user_id)
     regular_habits = [h for h in habits if not h[4]]
@@ -493,7 +495,7 @@ async def set_reminder(update, context):
     return SETTING_REMINDER
 
 
-async def set_reminder_habit_selected(update, context):
+async def set_reminder_habit_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "Отмена":
         await update.message.reply_text(
             "Действие отменено",
@@ -531,7 +533,7 @@ async def set_reminder_habit_selected(update, context):
         return SETTING_REMINDER
 
 
-async def set_reminder_interval_input(update, context):
+async def set_reminder_interval_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     interval_pattern = re.compile(r"^(\d+):(\d+):(\d+):(\d+)$")
     match = interval_pattern.match(update.message.text)
 
@@ -554,9 +556,12 @@ async def set_reminder_interval_input(update, context):
 
     habit_id = context.user_data["reminder_habit_id"]
     habit = get_habit(habit_id)
+
     update_reminder_interval(habit_id, total_seconds)
+
     for job in context.job_queue.get_jobs_by_name(f"reminder_{habit_id}"):
         job.schedule_removal()
+
     context.job_queue.run_repeating(
         send_reminder,
         interval=timedelta(seconds=total_seconds),
@@ -573,10 +578,11 @@ async def set_reminder_interval_input(update, context):
     return ConversationHandler.END
 
 
-async def send_reminder(update, context):
+async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     habit_text = job.data["habit_text"]
     habit_id = job.data["habit_id"]
+
     conn = sqlite3.connect("habits.db")
     cursor = conn.cursor()
     cursor.execute("SELECT is_done FROM habits WHERE id = ?", (habit_id,))
@@ -591,23 +597,23 @@ async def send_reminder(update, context):
         )
 
 
-async def help_command(update, context):
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Помощь по боту:\n\n"
-        "Основные функции:\n"
-        "Добавить привычку - создать новую привычку с напоминаниями\n"
-        "Добавить дедлайн - создать дедлайн с ежедневными напоминаниями\n"
-        "Мои привычки - просмотреть список привычек и дедлайнов\n"
-        "Отметить дедлайн - отметить дедлайн как выполненный\n"
-        "Удалить - удалить привычку или дедлайн\n"
-        "Настроить напоминания - изменить интервал напоминаний для привычки\n\n"
-        "Формат даты для дедлайнов: ДД.ММ.ГГГГ (например, 31.12.2023)\n"
-        "Формат интервала напоминаний: дни:часы:минуты:секунды (например, 0:1:30:0)",
+        "ℹ️ Помощь по боту:\n\n"
+        "📌 Основные функции:\n"
+        "• Добавить привычку - создать новую привычку с напоминаниями\n"
+        "• Добавить дедлайн - создать дедлайн с ежедневными напоминаниями\n"
+        "• Мои привычки - просмотреть список привычек и дедлайнов\n"
+        "• Отметить дедлайн - отметить дедлайн как выполненный\n"
+        "• Удалить - удалить привычку или дедлайн\n"
+        "• Настроить напоминания - изменить интервал напоминаний для привычки\n\n"
+        "📅 Формат даты для дедлайнов: ДД.ММ.ГГГГ (например, 31.12.2023)\n"
+        "⏱ Формат интервала напоминаний: дни:часы:минуты:секунды (например, 0:1:30:0)",
         reply_markup=get_main_menu(),
     )
 
 
-async def get_current_weather():
+async def get_current_weather(location: str):
     url = "http://api.openweathermap.org/data/2.5/weather?id=524901&lang=ru&units=metric&APPID=2faa30a09d31ad5474a216fee4d6897a";
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -636,7 +642,7 @@ async def get_current_weather():
             )
 
 
-async def cancel(update, context):
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "habit_id" in context.user_data:
         context.user_data.clear()
     await update.message.reply_text(
@@ -646,7 +652,7 @@ async def cancel(update, context):
     return ConversationHandler.END
 
 
-async def handle_text(update, context):
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text == "Добавить привычку":
         return await add_habit(update, context)
@@ -678,7 +684,7 @@ async def handle_text(update, context):
         return ConversationHandler.END
     else:
         await update.message.reply_text(
-            "Используйте кнопки меню.",
+            "Я не понимаю эту команду. Используйте кнопки меню.",
             reply_markup=get_main_menu(),
         )
 
